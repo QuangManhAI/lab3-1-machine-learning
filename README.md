@@ -2,7 +2,7 @@
 
 This project implements image segmentation with K-Means from scratch. It loads an RGB image, resizes it, converts pixels into color feature vectors, clusters the pixels for several K values, reconstructs segmented images from centroid colors, and saves figures plus metrics.
 
-The core K-Means assignment/update loop is implemented manually in `notebooks/kmeans.py`. Sklearn is used only as an optional comparison inside the notebook.
+The core K-Means assignment/update loop is implemented manually in `src/kmeans.py`. Sklearn is used only as an optional comparison inside the notebook.
 
 ## Structure
 
@@ -17,11 +17,11 @@ lab3_1/
   data/processed/segmented_k8.png
   data/processed/metrics/segmentation_metrics.csv
   notebooks/lab3_1.ipynb
-  notebooks/image_io.py
-  notebooks/kmeans.py
-  notebooks/run_pipeline.py
-  notebooks/utils.py
-  notebooks/visualization.py
+  src/image_io.py
+  src/kmeans.py
+  src/run_pipeline.py
+  src/utils.py
+  src/visualization.py
   reports/figures/
   reports/image_segmentation_report.md
 ```
@@ -36,7 +36,7 @@ python -m venv .venv
 ## Run The Pipeline
 
 ```bash
-.venv/bin/python notebooks/run_pipeline.py
+.venv/bin/python src/run_pipeline.py
 ```
 
 This uses the first image in `data/raw/` (currently `picture.jpg`), creates a deterministic sample image only if `data/raw/` is empty, runs K-Means for `K = 2, 3, 5, 8`, and saves all processed images, figures, and metrics.
