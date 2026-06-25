@@ -101,3 +101,19 @@ def compression_ratio(unique_colors_before: int, unique_colors_after: int) -> fl
     if unique_colors_before == 0:
         return 0.0
     return unique_colors_after / unique_colors_before
+
+
+def compute_silhouette_score(X: np.ndarray, labels: np.ndarray, sample_size: int = 2000, random_state: int = 42) -> float:
+    """Compute average silhouette score on a sample to avoid memory issues."""
+    from sklearn.metrics import silhouette_score
+    X = np.asarray(X, dtype=float)
+    if len(X) > sample_size:
+        rng = np.random.default_rng(random_state)
+        indices = rng.choice(len(X), size=sample_size, replace=False)
+        X_sample = X[indices]
+        labels_sample = labels[indices]
+    else:
+        X_sample = X
+        labels_sample = labels
+    return float(silhouette_score(X_sample, labels_sample))
+

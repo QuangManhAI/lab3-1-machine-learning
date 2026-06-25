@@ -20,14 +20,21 @@ RGB is used for the main segmentation results. The notebook also saves `reports/
 
 ## K Values Tested
 
-| K | Inertia | Iterations | Unique Colors After | Output |
-|---:|---:|---:|---:|---|
-| 2 | 261719603.662 | 6 | 2 | `data/processed/segmented_k2.png` |
-| 3 | 126918500.780 | 16 | 3 | `data/processed/segmented_k3.png` |
-| 5 | 69047213.344 | 30 | 5 | `data/processed/segmented_k5.png` |
-| 8 | 41557213.509 | 49 | 8 | `data/processed/segmented_k8.png` |
+| K | Inertia | Iterations | Silhouette Score | Unique Colors After | Output |
+|---:|---:|---:|---:|---:|---|
+| 2 | 261719603.662 | 6 | 0.6894 | 2 | `data/processed/segmented_k2.png` |
+| 3 | 126918500.780 | 16 | 0.6210 | 3 | `data/processed/segmented_k3.png` |
+| 5 | 69047213.344 | 30 | 0.5180 | 5 | `data/processed/segmented_k5.png` |
+| 8 | 41557213.509 | 49 | 0.4919 | 8 | `data/processed/segmented_k8.png` |
+
+*Note: Silhouette scores are calculated on a random sample of 2,000 pixels to avoid memory constraints.*
 
 The complete metrics table is saved at `data/processed/metrics/segmentation_metrics.csv`.
+
+## Quantitative Evaluation (Elbow & Silhouette)
+
+- **Elbow Method**: Plotting Inertia vs. K (saved in `reports/figures/elbow_plot.png`) shows a clear elbow shape. The drop in inertia from K=2 to K=3 and K=5 is substantial, while the decrease from K=5 to K=8 is less pronounced, indicating that K=5 or K=8 is a reasonable choice for optimal variance explanation.
+- **Silhouette Analysis**: Plotting the silhouette coefficient profile for K=5 (saved in `reports/figures/silhouette_plot_k5.png`) shows well-distributed cluster sizes and relatively clean separation. The average silhouette score decreases as K increases, which is expected since more clusters split major color regions into tighter, but less distinct, sub-regions.
 
 ## Final Selected K
 
@@ -55,4 +62,5 @@ Increasing K naturally lowers inertia, so the lowest inertia is not automaticall
 - Add spatial features such as normalized x/y coordinates.
 - Try K-Means++ initialization.
 - Use multiple random restarts and keep the model with the lowest inertia.
-- Add silhouette-style diagnostics or perceptual color-difference metrics.
+- Add perceptual color-difference metrics.
+

@@ -18,9 +18,9 @@ from image_io import (
     resize_image,
     save_image,
 )
-from kmeans import KMeansFromScratch, compression_ratio, reconstruct_image
+from kmeans import KMeansFromScratch, compression_ratio, reconstruct_image, compute_silhouette_score
 from utils import ensure_dir, report_status, save_figure, save_table, setup_seed
-from visualization import color_palette, compare_images, convergence_plot, display_image, k_comparison_grid
+from visualization import color_palette, compare_images, convergence_plot, display_image, k_comparison_grid, elbow_plot, silhouette_plot
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -110,12 +110,14 @@ def run_experiments(feature_image: np.ndarray, display_image_rgb: np.ndarray, ou
         save_image(segmented_rgb, output_path)
 
         unique_after = image_summary(segmented_rgb)["unique_colors"]
+        sil_score = compute_silhouette_score(pixels, model.labels_, sample_size=2000, random_state=RANDOM_SEED)
         metrics.append(
             {
                 "color_space": "RGB",
                 "k": k,
                 "inertia": round(model.inertia_, 3),
                 "n_iter": model.n_iter_,
+                "silhouette_score": round(sil_score, 4),
                 "compression_ratio": round(compression_ratio(unique_before, unique_after), 6),
                 "unique_colors_before": unique_before,
                 "unique_colors_after": unique_after,
@@ -163,6 +165,14 @@ def main() -> None:
 
     fig = convergence_plot(history_by_k)
     save_figure(fig, figures_dir / "convergence_plot.png")
+    plt.close(fig)
+
+    fig = elbow_plot(metrics_df["k"].tolist(), metrics_df["inertia"].tolist())
+    save_figure(fig, figures_dir / "elbow_plot.png")
+    plt.close(fig)
+
+    fig, _ = silhouette_plot(flatten_pixels(resized), models_by_k[5].labels_, sample_size=2000, random_state=RANDOM_SEED)
+    save_figure(fig, figures_dir / "silhouette_plot_k5.png")
     plt.close(fig)
 
     fig = color_palette(models_by_k[5].cluster_centers_, title="K=5 Centroid Palette")
