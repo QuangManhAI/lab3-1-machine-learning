@@ -1,5 +1,5 @@
 color_space,k,inertia,n_iter,silhouette_score,compression_ratio,unique_colors_before,unique_colors_after,output_path
-RGB,2,261719603.662,6,0.6894,4.2e-05,47119,2,data/processed/segmented_k2.png
-RGB,3,126918500.78,16,0.621,6.4e-05,47119,3,data/processed/segmented_k3.png
-RGB,5,69047213.344,30,0.518,0.000106,47119,5,data/processed/segmented_k5.png
-RGB,8,41557213.509,49,0.4919,0.00017,47119,8,data/processed/segmented_k8.png
+RGB,2,261719603.662,6,0.6894,4.2e-05,47119,2,data\processed\segmented_k2.png
+RGB,3,126918500.78,16,0.621,6.4e-05,47119,3,data\processed\segmented_k3.png
+RGB,5,69047213.344,30,0.518,0.000106,47119,5,data\processed\segmented_k5.png
+RGB,8,41557213.509,49,0.4919,0.00017,47119,8,data\processed\segmented_k8.png
