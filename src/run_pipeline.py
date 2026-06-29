@@ -92,7 +92,7 @@ def make_color_space_preview(rgb_image: np.ndarray, output_path: Path) -> None:
     plt.close(fig)
 
 
-def run_experiments(feature_image: np.ndarray, display_image_rgb: np.ndarray, output_dir: Path):
+def run_experiments(feature_image: np.ndarray, display_image_rgb: np.ndarray, output_dir: Path, image_name: str):
     pixels = flatten_pixels(feature_image)
     unique_before = image_summary(display_image_rgb)["unique_colors"]
     images_by_k = {}
@@ -101,18 +101,19 @@ def run_experiments(feature_image: np.ndarray, display_image_rgb: np.ndarray, ou
     metrics = []
 
     for k in K_VALUES:
-        report_status(f"Fitting K={k}")
+        report_status(f"Fitting {image_name} with K={k}")
         model = KMeansFromScratch(n_clusters=k, max_iter=100, tol=1e-3, random_state=RANDOM_SEED)
         model.fit(pixels)
         segmented_features = reconstruct_image(model.labels_, model.cluster_centers_, feature_image.shape)
         segmented_rgb = convert_to_rgb(segmented_features, "RGB")
-        output_path = output_dir / f"segmented_k{k}.png"
+        output_path = output_dir / f"segmented_{Path(image_name).stem}_k{k}.png"
         save_image(segmented_rgb, output_path)
 
         unique_after = image_summary(segmented_rgb)["unique_colors"]
         sil_score = compute_silhouette_score(pixels, model.labels_, sample_size=2000, random_state=RANDOM_SEED)
         metrics.append(
             {
+                "image": image_name,
                 "color_space": "RGB",
                 "k": k,
                 "inertia": round(model.inertia_, 3),
@@ -138,49 +139,63 @@ def main() -> None:
     metrics_dir = ensure_dir(processed_dir / "metrics")
     figures_dir = ensure_dir(PROJECT_ROOT / "reports" / "figures")
 
-    preferred_image = raw_dir / "picture.jpg"
-    image_candidates = sorted(raw_dir.glob("*.[jp][pn]g")) + sorted(raw_dir.glob("*.jpeg"))
-    if preferred_image.exists():
-        image_path = preferred_image
-    else:
-        image_path = image_candidates[0] if image_candidates else create_sample_image(raw_dir / "sample_image.jpg")
-    report_status(f"Using image: {image_path.relative_to(PROJECT_ROOT)}")
+    image_files = ["picture.jpg", "picture_2.jpg", "picture_3.jpg"]
+    optimal_k_dict = {"picture.jpg": 5, "picture_2.jpg": 3, "picture_3.jpg": 5}
+    
+    all_metrics = []
 
-    original = load_image_rgb(image_path)
-    resized = resize_image(original, max_size=350)
-    save_image(resized, processed_dir / "resized_image.png")
-    save_image(original, figures_dir / "original_image.png")
-    make_color_space_preview(resized, figures_dir / "color_space_preview.png")
+    for filename in image_files:
+        image_path = raw_dir / filename
+        if not image_path.exists() and filename == "picture.jpg":
+            image_path = create_sample_image(raw_dir / "sample_image.jpg")
+            filename = "sample_image.jpg"
+            optimal_k_dict[filename] = 5
+            
+        if not image_path.exists():
+            continue
+            
+        report_status(f"Using image: {image_path.relative_to(PROJECT_ROOT)}")
 
-    images_by_k, models_by_k, history_by_k, metrics_df = run_experiments(resized, resized, processed_dir)
-    save_table(metrics_df, metrics_dir / "segmentation_metrics.csv")
+        original = load_image_rgb(image_path)
+        resized = resize_image(original, max_size=350)
+        save_image(resized, processed_dir / f"resized_{Path(filename).stem}.png")
+        save_image(original, figures_dir / f"original_{Path(filename).stem}.png")
+        make_color_space_preview(resized, figures_dir / f"color_space_preview_{Path(filename).stem}.png")
 
-    fig = compare_images(resized, images_by_k[5], titles=("Original resized", "Segmented K=5"))
-    save_figure(fig, figures_dir / "original_vs_segmented.png")
-    plt.close(fig)
+        images_by_k, models_by_k, history_by_k, metrics_df = run_experiments(resized, resized, processed_dir, filename)
+        all_metrics.append(metrics_df)
 
-    fig = k_comparison_grid(images_by_k, original=resized, color_space="RGB")
-    save_figure(fig, figures_dir / "k_comparison_grid.png")
-    plt.close(fig)
+        k_opt = optimal_k_dict[filename]
 
-    fig = convergence_plot(history_by_k)
-    save_figure(fig, figures_dir / "convergence_plot.png")
-    plt.close(fig)
+        fig = compare_images(resized, images_by_k[k_opt], titles=(f"Original {filename}", f"Segmented K={k_opt}"))
+        save_figure(fig, figures_dir / f"original_vs_segmented_{Path(filename).stem}.png")
+        plt.close(fig)
 
-    fig = elbow_plot(metrics_df["k"].tolist(), metrics_df["inertia"].tolist())
-    save_figure(fig, figures_dir / "elbow_plot.png")
-    plt.close(fig)
+        fig = k_comparison_grid(images_by_k, original=resized, color_space="RGB")
+        save_figure(fig, figures_dir / f"k_comparison_grid_{Path(filename).stem}.png")
+        plt.close(fig)
 
-    fig, _ = silhouette_plot(flatten_pixels(resized), models_by_k[5].labels_, sample_size=2000, random_state=RANDOM_SEED)
-    save_figure(fig, figures_dir / "silhouette_plot_k5.png")
-    plt.close(fig)
+        fig = convergence_plot(history_by_k)
+        save_figure(fig, figures_dir / f"convergence_plot_{Path(filename).stem}.png")
+        plt.close(fig)
 
-    fig = color_palette(models_by_k[5].cluster_centers_, title="K=5 Centroid Palette")
-    save_figure(fig, figures_dir / "color_palette_k5.png")
-    plt.close(fig)
+        fig = elbow_plot(metrics_df["k"].tolist(), metrics_df["inertia"].tolist())
+        save_figure(fig, figures_dir / f"elbow_plot_{Path(filename).stem}.png")
+        plt.close(fig)
 
-    report_status("Metrics")
-    print(metrics_df)
+        fig, _ = silhouette_plot(flatten_pixels(resized), models_by_k[k_opt].labels_, sample_size=2000, random_state=RANDOM_SEED)
+        save_figure(fig, figures_dir / f"silhouette_plot_{Path(filename).stem}_k{k_opt}.png")
+        plt.close(fig)
+
+        fig = color_palette(models_by_k[k_opt].cluster_centers_, title=f"{filename} K={k_opt} Centroid Palette")
+        save_figure(fig, figures_dir / f"color_palette_{Path(filename).stem}_k{k_opt}.png")
+        plt.close(fig)
+
+    if all_metrics:
+        final_metrics_df = pd.concat(all_metrics, ignore_index=True)
+        save_table(final_metrics_df, metrics_dir / "segmentation_metrics.csv")
+        report_status("Metrics")
+        print(final_metrics_df)
 
 
 if __name__ == "__main__":
