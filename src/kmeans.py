@@ -58,6 +58,7 @@ class KMeansFromScratch:
         centers = self._initialize_centroids(X)
         self.inertia_history_ = []
         self.center_shift_history_ = []
+        self.centroids_history_ = [centers.copy()]
 
         for iteration in range(1, self.max_iter + 1):
             labels = self._assign_labels(X, centers)
@@ -67,6 +68,7 @@ class KMeansFromScratch:
 
             self.inertia_history_.append(inertia)
             self.center_shift_history_.append(center_shift)
+            self.centroids_history_.append(new_centers.copy())
             centers = new_centers
 
             if center_shift <= self.tol:
