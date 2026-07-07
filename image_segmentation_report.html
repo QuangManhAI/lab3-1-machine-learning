@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>K-Means Image Segmentation — Analysis Report</title>
+  <style>
+    :root {
+      --primary: #2c3e50;
+      --accent: #3498db;
+      --accent-light: #ebf5fb;
+      --bg: #f8f9fa;
+      --card: #ffffff;
+      --text: #2c3e50;
+      --muted: #7f8c8d;
+      --border: #dee2e6;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: var(--text);
+      background: var(--bg);
+    }
+    .header {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+      color: #fff;
+      padding: 3rem 2rem;
+      text-align: center;
+    }
+    .header h1 { font-size: 2.2rem; margin-bottom: 0.5rem; }
+    .header p { font-size: 1.1rem; opacity: 0.9; }
+    .header .meta { margin-top: 0.8rem; font-size: 0.85rem; opacity: 0.7; }
+    .container { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem; }
+    .toc {
+      background: var(--card);
+      border-radius: 10px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      padding: 1.5rem 2rem;
+      margin-bottom: 2rem;
+    }
+    .toc h2 { margin-bottom: 1rem; color: var(--primary); font-size: 1.3rem; }
+    .toc ol { columns: 2 280px; column-gap: 2rem; padding-left: 1.2rem; }
+    .toc ol li { margin-bottom: 0.4rem; }
+    .toc a { color: var(--accent); text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+    .section {
+      background: var(--card);
+      border-radius: 10px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      margin-bottom: 1.8rem;
+      overflow: hidden;
+    }
+    .section-header {
+      background: var(--accent-light);
+      padding: 1.2rem 2rem;
+      border-bottom: 2px solid var(--accent);
+    }
+    .section-header h2 { font-size: 1.25rem; color: var(--primary); }
+    .section-header .step { color: var(--accent); font-weight: 700; margin-right: 0.3rem; }
+    .section-body { padding: 1.5rem 2rem 2rem; }
+    .section-body p { margin-bottom: 0.8rem; }
+    .section-body p:last-child { margin-bottom: 0; }
+    .figure {
+      margin: 1.5rem 0 0.5rem;
+      text-align: center;
+    }
+    .figure img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+    }
+    .caption {
+      margin-top: 0.5rem;
+      font-size: 0.85rem;
+      font-style: italic;
+      color: var(--muted);
+    }
+    .insight {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 0.8rem 1.2rem;
+      border-radius: 0 6px 6px 0;
+      margin: 0.8rem 0;
+      font-size: 0.92rem;
+    }
+    .insight strong { color: #856404; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin: 0.8rem 0; }
+    th, td { padding: 0.5rem 0.8rem; text-align: left; border-bottom: 1px solid var(--border); }
+    th { background: var(--accent-light); font-weight: 600; }
+    .image-label {
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: var(--primary);
+      margin-bottom: 0.3rem;
+      text-align: center;
+    }
+    .footer {
+      text-align: center;
+      padding: 2rem;
+      color: var(--muted);
+      font-size: 0.85rem;
+      border-top: 1px solid var(--border);
+      margin-top: 1rem;
+    }
+    code {
+      background: #f4f4f4;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+    }
+    @media (max-width: 700px) {
+      .two-col { grid-template-columns: 1fr; }
+      .three-col { grid-template-columns: 1fr; }
+      .toc ol { columns: 1; }
+      .header h1 { font-size: 1.6rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>K-Means Image Segmentation</h1>
+  <p>Multi-image analysis across K = 2, 3, 5, 8 with custom K-Means implementation</p>
+  <div class="meta">3 source images &bull; RGB color space &bull; Random seed 42 &bull; 12 segmentation runs</div>
+</div>
+
+<div class="container">
+
+<div class="toc">
+  <h2>Table of Contents</h2>
+  <ol>
+    <li><a href="#s1">Source Images &amp; Preprocessing</a></li>
+    <li><a href="#s2">Color Space Preview</a></li>
+    <li><a href="#s3">Metrics Summary</a></li>
+    <li><a href="#s4">Elbow &amp; Silhouette Analysis</a></li>
+    <li><a href="#s5">Segmentation Grid</a></li>
+    <li><a href="#s6">Convergence &amp; Color Palettes</a></li>
+    <li><a href="#s7">Summary &amp; Recommendations</a></li>
+  </ol>
+</div>
+
+<!-- 1. Source Images -->
+<div class="section" id="s1">
+  <div class="section-header">
+    <h2><span class="step">1.</span> Source Images &amp; Preprocessing</h2>
+  </div>
+  <div class="section-body">
+    <p>Three RGB images from <code>data/raw/</code> are resized to a maximum dimension of 350px before clustering. Each pixel becomes an RGB feature vector in 0&ndash;255 range.</p>
+    <div class="three-col">
+      <div>
+        <div class="image-label">picture.jpg &mdash; 47119 unique colors</div>
+        <div class="figure" style="margin-top:0.5rem;">
+          <img src="reports/figures/original_picture.png" alt="Original image picture.jpg">
+        </div>
+      </div>
+      <div>
+        <div class="image-label">picture_2.jpg &mdash; 8231 unique colors</div>
+        <div class="figure" style="margin-top:0.5rem;">
+          <img src="reports/figures/original_picture_2.png" alt="Original image picture_2.jpg">
+        </div>
+      </div>
+      <div>
+        <div class="image-label">picture_3.jpg &mdash; 12631 unique colors</div>
+        <div class="figure" style="margin-top:0.5rem;">
+          <img src="reports/figures/original_picture_3.png" alt="Original image picture_3.jpg">
+        </div>
+      </div>
+    </div>
+    <div class="insight"><strong>Color complexity varies:</strong> picture.jpg has the most unique colors (47K), making segmentation more challenging. picture_2.jpg has only 8K unique colors and simpler content, which leads to faster convergence.</div>
+  </div>
+</div>
+
+<!-- 2. Color Space -->
+<div class="section" id="s2">
+  <div class="section-header">
+    <h2><span class="step">2.</span> Color Space Preview</h2>
+  </div>
+  <div class="section-body">
+    <p>Each image is also converted to HSV and LAB for visual reference. RGB is used as the primary space for K-Means clustering.</p>
+    <div class="three-col">
+      <div class="figure">
+        <img src="reports/figures/color_space_preview_picture.png" alt="Color space preview for picture.jpg">
+        <div class="caption"><strong>Figure 1a:</strong> picture.jpg — RGB / HSV / LAB.</div>
+      </div>
+      <div class="figure">
+        <img src="reports/figures/color_space_preview_picture_2.png" alt="Color space preview for picture_2.jpg">
+        <div class="caption"><strong>Figure 1b:</strong> picture_2.jpg — RGB / HSV / LAB.</div>
+      </div>
+      <div class="figure">
+        <img src="reports/figures/color_space_preview_picture_3.png" alt="Color space preview for picture_3.jpg">
+        <div class="caption"><strong>Figure 1c:</strong> picture_3.jpg — RGB / HSV / LAB.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 3. Metrics Table -->
+<div class="section" id="s3">
+  <div class="section-header">
+    <h2><span class="step">3.</span> Metrics Summary</h2>
+  </div>
+  <div class="section-body">
+    <p>Complete results across all 3 images &times; 4 K values. The optimal K (selected per image) is highlighted in bold.</p>
+    <table>
+      <thead>
+        <tr><th>Image</th><th>K</th><th>Inertia</th><th>Iterations</th><th>Silhouette</th><th>Unique Before</th><th>Unique After</th></tr>
+      </thead>
+      <tbody>
+        <tr><td rowspan="4">picture.jpg</td><td>2</td><td>261,719,604</td><td>6</td><td>0.689</td><td>47,119</td><td>2</td></tr>
+        <tr><td>3</td><td>126,918,501</td><td>16</td><td>0.621</td><td>47,119</td><td>3</td></tr>
+        <tr style="font-weight:700;background:var(--accent-light);"><td>5</td><td>69,047,213</td><td>30</td><td>0.518</td><td>47,119</td><td>5</td></tr>
+        <tr><td>8</td><td>41,557,214</td><td>49</td><td>0.492</td><td>47,119</td><td>8</td></tr>
+        <tr><td rowspan="4">picture_2.jpg</td><td>2</td><td>29,221,633</td><td>3</td><td>0.783</td><td>8,231</td><td>2</td></tr>
+        <tr style="font-weight:700;background:var(--accent-light);"><td>3</td><td>12,493,798</td><td>10</td><td>0.748</td><td>8,231</td><td>3</td></tr>
+        <tr><td>5</td><td>9,557,460</td><td>9</td><td>0.466</td><td>8,231</td><td>5</td></tr>
+        <tr><td>8</td><td>4,319,147</td><td>13</td><td>0.437</td><td>8,231</td><td>8</td></tr>
+        <tr><td rowspan="4">picture_3.jpg</td><td>2</td><td>361,822,438</td><td>3</td><td>0.733</td><td>12,631</td><td>2</td></tr>
+        <tr><td>3</td><td>323,573,896</td><td>9</td><td>0.661</td><td>12,631</td><td>3</td></tr>
+        <tr style="font-weight:700;background:var(--accent-light);"><td>5</td><td>64,041,523</td><td>11</td><td>0.835</td><td>12,631</td><td>5</td></tr>
+        <tr><td>8</td><td>60,787,290</td><td>40</td><td>0.797</td><td>12,631</td><td>8</td></tr>
+      </tbody>
+    </table>
+    <p class="caption" style="text-align:left;font-style:italic;color:var(--muted);font-size:0.85rem;">Bold rows indicate the optimal K selected per image. Silhouette scores computed on a 2000-pixel sample.</p>
+    <div class="insight"><strong>Top performers:</strong> picture_2 at K=3 achieves the highest silhouette (0.748) and converges in only 10 iterations. picture_3 at K=5 reaches an exceptional silhouette of 0.835. picture.jpg has the highest inertia overall due to its large color space.</div>
+  </div>
+</div>
+
+<!-- 4. Elbow & Silhouette -->
+<div class="section" id="s4">
+  <div class="section-header">
+    <h2><span class="step">4.</span> Elbow &amp; Silhouette Analysis</h2>
+  </div>
+  <div class="section-body">
+    <p>The elbow method and silhouette analysis together guide the optimal K selection for each image.</p>
+    <div class="two-col">
+      <div class="figure">
+        <img src="reports/figures/elbow_plot_picture.png" alt="Elbow plot for picture.jpg">
+        <div class="caption"><strong>Figure 2a:</strong> Elbow plot — picture.jpg.</div>
+      </div>
+      <div class="figure">
+        <img src="reports/figures/silhouette_plot_picture_k5.png" alt="Silhouette plot for picture.jpg at K=5">
+        <div class="caption"><strong>Figure 2b:</strong> Silhouette profile — picture.jpg, K=5.</div>
+      </div>
+      <div class="figure">
+        <img src="reports/figures/elbow_plot_picture_2.png" alt="Elbow plot for picture_2.jpg">
+        <div class="caption"><strong>Figure 2c:</strong> Elbow plot — picture_2.jpg.</div>
+      </div>
+      <div class="figure">
+        <img src="reports/figures/silhouette_plot_picture_2_k3.png" alt="Silhouette plot for picture_2.jpg at K=3">
+        <div class="caption"><strong>Figure 2d:</strong> Silhouette profile — picture_2.jpg, K=3.</div>
+      </div>
+      <div class="figure">
+        <img src="reports/figures/elbow_plot_picture_3.png" alt="Elbow plot for picture_3.jpg">
+        <div class="caption"><strong>Figure 2e:</strong> Elbow plot — picture_3.jpg.</div>
+      </div>
+      <div class="figure">
+        <img src="reports/figures/silhouette_plot_picture_3_k5.png" alt="Silhouette plot for picture_3.jpg at K=5">
+        <div class="caption"><strong>Figure 2f:</strong> Silhouette profile — picture_3.jpg, K=5.</div>
+      </div>
+    </div>
+    <div class="insight"><strong>Selection rationale:</strong> picture.jpg elbow flattens at K=5&ndash;8, silhouette favours K=2&ndash;3, so K=5 balances detail vs simplicity. picture_2.jpg has a clear elbow at K=3 with the best silhouette. picture_3.jpg (K=5) yields the single highest silhouette across all runs (0.835) with a strong elbow break.</div>
+  </div>
+</div>
+
+<!-- 5. Segmentation Grid -->
+<div class="section" id="s5">
+  <div class="section-header">
+    <h2><span class="step">5.</span> Segmentation Results</h2>
+  </div>
+  <div class="section-body">
+    <p>Each image segmented at K = {2, 3, 5, 8}. The grid shows original alongside all four outputs.</p>
+    <div class="three-col">
+      <div class="figure">
+        <img src="reports/figures/k_comparison_grid_picture.png" alt="K comparison grid for picture.jpg">
+        <div class="caption"><strong>Figure 3a:</strong> picture.jpg segmentation grid.</div>
+      </div>
+      <div class="figure">
+        <img src="reports/figures/k_comparison_grid_picture_2.png" alt="K comparison grid for picture_2.jpg">
+        <div class="caption"><strong>Figure 3b:</strong> picture_2.jpg segmentation grid.</div>
+      </div>
+      <div class="figure">
+        <img src="reports/figures/k_comparison_grid_picture_3.png" alt="K comparison grid for picture_3.jpg">
+        <div class="caption"><strong>Figure 3c:</strong> picture_3.jpg segmentation grid.</div>
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="figure">
+        <img src="reports/figures/original_vs_segmented_picture.png" alt="Original vs segmented for picture.jpg at K=5">
+        <div class="caption"><strong>Figure 4a:</strong> picture.jpg — original vs K=5.</div>
+      </div>
+      <div class="figure">
+        <img src="reports/figures/original_vs_segmented_picture_2.png" alt="Original vs segmented for picture_2.jpg at K=3">
+        <div class="caption"><strong>Figure 4b:</strong> picture_2.jpg — original vs K=3.</div>
+      </div>
+      <div class="figure">
+        <img src="reports/figures/original_vs_segmented_picture_3.png" alt="Original vs segmented for picture_3.jpg at K=5">
+        <div class="caption"><strong>Figure 4c:</strong> picture_3.jpg — original vs K=5.</div>
+      </div>
+    </div>
+    <div class="insight"><strong>Visual quality:</strong> picture_2 (K=3) produces the most faithful colour-quantised version — the three centroids capture sky, foliage, and ground with minimal artefacts. picture_3 (K=5) recovers fine scene structure while still providing strong compression.</div>
+  </div>
+</div>
+
+<!-- 6. Convergence & Palettes -->
+<div class="section" id="s6">
+  <div class="section-header">
+    <h2><span class="step">6.</span> Convergence &amp; Color Palettes</h2>
+  </div>
+  <div class="section-body">
+    <p>Inertia trace per iteration for each K value, plus the dominant colour palette at each image's optimal K.</p>
+    <div class="two-col">
+      <div class="figure">
+        <img src="reports/figures/convergence_plot_picture.png" alt="Convergence plot for picture.jpg">
+        <div class="caption"><strong>Figure 5a:</strong> Convergence — picture.jpg.</div>
+      </div>
+      <div class="figure">
+        <img src="reports/figures/color_palette_picture_k5.png" alt="Color palette for picture.jpg at K=5">
+        <div class="caption"><strong>Figure 5b:</strong> Palette — picture.jpg, K=5.</div>
+      </div>
+      <div class="figure">
+        <img src="reports/figures/convergence_plot_picture_2.png" alt="Convergence plot for picture_2.jpg">
+        <div class="caption"><strong>Figure 5c:</strong> Convergence — picture_2.jpg.</div>
+      </div>
+      <div class="figure">
+        <img src="reports/figures/color_palette_picture_2_k3.png" alt="Color palette for picture_2.jpg at K=3">
+        <div class="caption"><strong>Figure 5d:</strong> Palette — picture_2.jpg, K=3.</div>
+      </div>
+      <div class="figure">
+        <img src="reports/figures/convergence_plot_picture_3.png" alt="Convergence plot for picture_3.jpg">
+        <div class="caption"><strong>Figure 5e:</strong> Convergence — picture_3.jpg.</div>
+      </div>
+      <div class="figure">
+        <img src="reports/figures/color_palette_picture_3_k5.png" alt="Color palette for picture_3.jpg at K=5">
+        <div class="caption"><strong>Figure 5f:</strong> Palette — picture_3.jpg, K=5.</div>
+      </div>
+    </div>
+    <div class="insight"><strong>Convergence speed:</strong> picture_2 converges fastest (K=8 only needs 13 iters) due to its simpler colour distribution. picture.jpg needs up to 49 iters for K=8. All runs converge monotonically with no oscillation.</div>
+  </div>
+</div>
+
+<!-- 7. Summary -->
+<div class="section" id="s7">
+  <div class="section-header">
+    <h2><span class="step">7.</span> Summary &amp; Recommendations</h2>
+  </div>
+  <div class="section-body">
+    <p>Three images were segmented with a custom K-Means implementation across K = 2, 3, 5, 8. The optimal K differs per image based on content complexity:</p>
+    <table>
+      <thead>
+        <tr><th>Image</th><th>Optimal K</th><th>Rationale</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>picture.jpg</td><td><strong>5</strong></td><td>Balances visual simplicity with scene detail; elbow is clear at K=5.</td></tr>
+        <tr><td>picture_2.jpg</td><td><strong>3</strong></td><td>Only 3 dominant colour masses; higher K over-segments without benefit.</td></tr>
+        <tr><td>picture_3.jpg</td><td><strong>5</strong></td><td>Highest silhouette score (0.835) across all runs; clean separation.</td></tr>
+      </tbody>
+    </table>
+    <div class="insight"><strong>Key takeaway:</strong> Optimal K is image-dependent. picture_2.jpg (simple scene) needs K=3, while picture.jpg and picture_3.jpg (richer content) benefit from K=5. Always use elbow + silhouette analysis rather than a fixed K.</div>
+  </div>
+</div>
+
+</div>
+
+<div class="footer">
+  Generated from K-Means Image Segmentation pipeline &bull; 7 sections &bull; 3 images &bull; K = 2, 3, 5, 8 &bull; RGB &bull; Seed 42
+</div>
+
+</body>
+</html>
